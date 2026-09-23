@@ -44,6 +44,25 @@ jobs:
             "https://nodejs.org/dist/${NODE_VER}/node-${NODE_VER}-darwin-arm64.tar.xz"
           mkdir -p "$RUNNER_TEMP/node"
           tar -xJf "$RUNNER_TEMP/node.tar.xz" -C "$RUNNER_TEMP/node" --strip-components=1
+          "$RUNNER_TEMP/node/bin/node" --version
+
+      - name: Bootstrap node-automation deps with bundled node
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+        run: |
+          export PATH="$RUNNER_TEMP/node/bin:$PATH"
+          cd node-automation
+          npm ci --omit=optional --no-audit --no-fund
+          node -e "require('puppeteer-extra'); require('puppeteer-extra-plugin-stealth'); console.log('DEPS_LOAD_OK puppeteer=' + require('puppeteer/package.json').version)"
+
+      - name: Smoke test node scripts (no delivery)
+        run: |
+          export PATH="$RUNNER_TEMP/node/bin:$PATH"
+          node --check node-automation/boss.mjs
+          node --check node-automation/zhaopin.mjs
+          node --check node-automation/login.mjs
+          node --check node-automation/zhaopin-login.mjs
+          echo "SMOKE_SYNTAX_OK"
 
       - name: Assemble portable package
         run: |
@@ -52,7 +71,6 @@ jobs:
           mkdir -p "$PKG/bin" "$PKG/static" "$PKG/logs" "$PKG/cookies"
 
           # node runtime -> bin/
-          cp -R "$RUNNER_TEMP/node/bin" "$PKG/bin-tmp" 2>/dev/null || true
           cp "$RUNNER_TEMP/node/bin/node" "$PKG/bin/node"
           [ -d "$RUNNER_TEMP/node/include" ] && cp -R "$RUNNER_TEMP/node/include" "$PKG/bin/include"
           [ -d "$RUNNER_TEMP/node/lib" ] && cp -R "$RUNNER_TEMP/node/lib" "$PKG/bin/lib"
@@ -62,10 +80,9 @@ jobs:
           cp "$(pwd)/target/release/resume-web-ui" "$PKG/resume-web-ui"
           chmod +x "$PKG/resume-web-ui"
 
-          # node-automation (source only, deps installed on first run)
+          # node-automation: source + installed node_modules (keep deps)
           cp -R node-automation "$PKG/node-automation"
-          rm -rf "$PKG/node-automation/node_modules" \
-                 "$PKG/node-automation/chrome-profile-boss" \
+          rm -rf "$PKG/node-automation/chrome-profile-boss" \
                  "$PKG/node-automation/chrome-profile-zhaopin" \
                  "$PKG/node-automation/logs"
 
@@ -75,6 +92,10 @@ jobs:
           cp build/启动.bat "$PKG/启动.bat" || true
           touch "$PKG/logs/deliver_log.json" && echo "[]" > "$PKG/logs/deliver_log.json"
           chmod +x "$PKG/resume-web-ui" "$PKG/bin/node" "$PKG/启动-mac.command" || true
+
+          # verify bundled deps survived into package
+          "$PKG/bin/node" -e "require('$PKG/node-automation/node_modules/puppeteer-extra'); console.log('PKG_DEPS_OK')"
+          ls "$PKG/node-automation/node_modules" | head -20
 
           # zip it
           cd "$RUNNER_TEMP"
