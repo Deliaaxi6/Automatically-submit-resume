@@ -1,0 +1,27 @@
+# 敏感数据
+cookies/
+logs/
+node-automation/chrome-profile-*/
+node-automation/logs/
+
+# 依赖与构建产物
+node_modules/
+**/node_modules/
+target/
+__pycache__/
+*.pyc
+drivers/
+downloaded_files/
+resumes/
+
+# Python 残留（已由 Node 替代）
+core/
+main.py
+resume_parser.py
+utils.py
+requirements.txt
+
+# 系统/工具
+.DS_Store
+.vscode/
+.idea/

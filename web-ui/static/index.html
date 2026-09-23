@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简历自动投递工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        header {
+            text-align: center;
+            padding: 32px 0 24px;
+            border-bottom: 1px solid #222;
+            margin-bottom: 24px;
+        }
+        header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        header p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: #888;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: #ccc; }
+        .tab.active {
+            background: #2a2a2a;
+            color: #fff;
+        }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #262626;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #555;
+        }
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 6px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #ccc;
+            text-transform: none;
+            letter-spacing: 0;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            accent-color: #4ade80;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            width: 100%;
+        }
+        .btn-primary {
+            background: #4ade80;
+            color: #000;
+        }
+        .btn-primary:hover { background: #22c55e; }
+        .btn-primary:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #2a2a2a;
+            color: #ccc;
+            border: 1px solid #333;
+        }
+        .btn-secondary:hover { background: #333; }
+
+        .status-bar {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+        .status-bar.show { display: block; }
+        .status-bar.info { background: #1a2332; color: #60a5fa; border: 1px solid #1e3a5f; }
+        .status-bar.success { background: #14261a; color: #4ade80; border: 1px solid #166534; }
+        .status-bar.error { background: #261414; color: #f87171; border: 1px solid #7f1d1d; }
+
+        .log-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #222;
+        }
+        .log-item:last-child { border-bottom: none; }
+        .log-item .title {
+            font-size: 14px;
+            color: #fff;
+            font-weight: 500;
+        }
+        .log-item .company {
+            font-size: 12px;
+            color: #888;
+            margin-top: 2px;
+        }
+        .log-item .time {
+            font-size: 11px;
+            color: #555;
+            white-space: nowrap;
+        }
+        .log-item .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .badge-success { background: #14261a; color: #4ade80; }
+        .badge-failed { background: #261414; color: #f87171; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>简历自动投递</h1>
+            <p>Selenium 浏览器自动化 · BOSS直聘 / 智联招聘</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="search">搜索投递</button>
+            <button class="tab" data-tab="urls">链接投递</button>
+            <button class="tab" data-tab="login">登录管理</button>
+            <button class="tab" data-tab="logs">投递记录</button>
+        </div>
+
+        <!-- 搜索投递 -->
+        <div class="panel active" id="panel-search">
+            <div class="card">
+                <h3>搜索职位并自动投递</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>搜索关键词</label>
+                        <input type="text" id="search-keyword" value="Python开发" placeholder="如：Python开发、前端工程师">
+                    </div>
+                    <div class="form-group">
+                        <label>城市</label>
+                        <input type="text" id="search-city" value="北京" placeholder="如：北京、上海">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>最多投递数</label>
+                    <input type="number" id="search-max" value="10" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>最低薪资（元/月，仅 BOSS 有效，留空不过滤）</label>
+                    <input type="number" id="search-sf" value="" min="0" step="1000" placeholder="如：15000">
+                </div>
+                <div class="form-group">
+                    <label>投递平台</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="boss" checked> BOSS直聘</label>
+                        <label><input type="checkbox" value="zhaopin" checked> 智联招聘</label>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="btn-search" onclick="doSearch()">
+                    开始搜索投递
+                </button>
+                <div class="status-bar" id="search-status"></div>
+            </div>
+        </div>
+
+        <!-- 链接投递 -->
+        <div class="panel" id="panel-urls">
+            <div class="card">
+                <h3>按职位链接投递</h3>
+                <div class="form-group">
+                    <label>职位链接（每行一个）</label>
+                    <textarea id="urls-input" placeholder="https://www.zhipin.com/job_detail/xxx.html&#10;https://www.zhipin.com/job_detail/yyy.html"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>投递平台</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="boss" checked> BOSS直聘</label>
+                        <label><input type="checkbox" value="zhaopin" checked> 智联招聘</label>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="btn-urls" onclick="doUrls()">
+                    开始链接投递
+                </button>
+                <div class="status-bar" id="urls-status"></div>
+            </div>
+        </div>
+
+        <!-- 登录管理 -->
+        <div class="panel" id="panel-login">
+            <div class="card">
+                <h3>平台登录</h3>
+                <p style="font-size:13px; color:#888; margin-bottom:16px;">
+                    首次登录需手动扫码，工具会自动保存 Cookie 供后续使用。
+                </p>
+                <div style="display:flex; gap:12px;">
+                    <button class="btn btn-secondary" onclick="doLogin('boss')" style="flex:1;">
+                        登录 BOSS直聘
+                    </button>
+                    <button class="btn btn-secondary" onclick="doLogin('zhaopin')" style="flex:1;">
+                        登录 智联招聘
+                    </button>
+                </div>
+                <div class="status-bar" id="login-status"></div>
+            </div>
+        </div>
+
+        <!-- 投递记录 -->
+        <div class="panel" id="panel-logs">
+            <div class="card">
+                <h3>投递记录</h3>
+                <div class="log-list" id="log-list">
+                    <div class="empty-state">暂无记录</div>
+                </div>
+                <button class="btn btn-secondary" onclick="loadLogs()" style="margin-top:12px;">
+                    刷新记录
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+
+                if (tab.dataset.tab === 'logs') loadLogs();
+            });
+        });
+
+        function showStatus(id, type, msg) {
+            const el = document.getElementById(id);
+            el.className = 'status-bar show ' + type;
+            el.textContent = msg;
+        }
+
+        function getCheckedPlatforms(panelId) {
+            const checkboxes = document.querySelectorAll('#panel-' + panelId + ' .checkbox-group input:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        async function apiCall(url, data) {
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                return await resp.json();
+            } catch (e) {
+                return { ok: false, message: '网络错误: ' + e.message };
+            }
+        }
+
+        function pollTaskStatus(taskId, statusElId, onDone) {
+            showStatus(statusElId, 'info', '任务进行中...');
+            const timer = setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/task/' + taskId);
+                    const status = await resp.json();
+
+                    if (status.status === 'done') {
+                        clearInterval(timer);
+                        showStatus(statusElId, 'success', status.message);
+                        if (onDone) onDone();
+                    } else if (status.status === 'error') {
+                        clearInterval(timer);
+                        showStatus(statusElId, 'error', status.message);
+                        if (onDone) onDone();
+                    } else if (status.status === 'running') {
+                        showStatus(statusElId, 'info', status.message);
+                    }
+                } catch (e) {
+                    // 网络抖动时忽略，下次轮询重试
+                }
+            }, 3000);
+        }
+
+        async function doSearch() {
+            const btn = document.getElementById('btn-search');
+            btn.disabled = true;
+            btn.textContent = '投递中...';
+            showStatus('search-status', 'info', '正在提交任务...');
+
+            const result = await apiCall('/api/search', {
+                keyword: document.getElementById('search-keyword').value,
+                city: document.getElementById('search-city').value,
+                max: parseInt(document.getElementById('search-max').value) || 10,
+                platforms: getCheckedPlatforms('search'),
+                sf: parseInt(document.getElementById('search-sf').value) || undefined,
+            });
+
+            if (result.ok && result.data && result.data.task_id) {
+                showStatus('search-status', 'info', result.message);
+                pollTaskStatus(result.data.task_id, 'search-status', () => {
+                    btn.disabled = false;
+                    btn.textContent = '开始搜索投递';
+                    loadLogs();
+                });
+            } else {
+                showStatus('search-status', 'error', result.message || '任务启动失败');
+                btn.disabled = false;
+                btn.textContent = '开始搜索投递';
+            }
+        }
+
+        async function doUrls() {
+            const urls = document.getElementById('urls-input').value.trim();
+            if (!urls) {
+                showStatus('urls-status', 'error', '请输入至少一个职位链接');
+                return;
+            }
+
+            const btn = document.getElementById('btn-urls');
+            btn.disabled = true;
+            btn.textContent = '投递中...';
+            showStatus('urls-status', 'info', '正在提交任务...');
+
+            const result = await apiCall('/api/urls', {
+                urls: urls,
+                platforms: getCheckedPlatforms('urls'),
+            });
+
+            if (result.ok && result.data && result.data.task_id) {
+                showStatus('urls-status', 'info', result.message);
+                pollTaskStatus(result.data.task_id, 'urls-status', () => {
+                    btn.disabled = false;
+                    btn.textContent = '开始链接投递';
+                    loadLogs();
+                });
+            } else {
+                showStatus('urls-status', 'error', result.message || '任务启动失败');
+                btn.disabled = false;
+                btn.textContent = '开始链接投递';
+            }
+        }
+
+        async function doLogin(platform) {
+            showStatus('login-status', 'info', '正在启动浏览器...');
+
+            const result = await apiCall('/api/login', { platform: platform });
+
+            if (result.ok && result.data && result.data.task_id) {
+                showStatus('login-status', 'info', result.message);
+                pollTaskStatus(result.data.task_id, 'login-status');
+            } else {
+                showStatus('login-status', 'error', result.message || '登录任务启动失败');
+            }
+        }
+
+        async function loadLogs() {
+            const listEl = document.getElementById('log-list');
+            try {
+                const resp = await fetch('/api/logs');
+                const data = await resp.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state">暂无投递记录</div>';
+                    return;
+                }
+
+                listEl.innerHTML = data.reverse().map(item => `
+                    <div class="log-item">
+                        <div>
+                            <div class="title">${item.title || '未知职位'}</div>
+                            <div class="company">${item.company || '未知公司'}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="badge ${item.status === 'success' ? 'badge-success' : 'badge-failed'}">
+                                ${item.status === 'success' ? '成功' : '失败'}
+                            </span>
+                            <div class="time">${item.timestamp ? new Date(item.timestamp).toLocaleString('zh-CN') : ''}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                listEl.innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        // Load logs on init
+        loadLogs();
+    </script>
+</body>
+</html>

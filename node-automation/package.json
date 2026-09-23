@@ -1,0 +1,13 @@
+{
+  "name": "resume-auto-apply-node",
+  "version": "1.0.0",
+  "description": "BOSS直聘自动化 - Node Puppeteer 实现（登录/搜索/投递）",
+  "type": "module",
+  "main": "login.mjs",
+  "private": true,
+  "dependencies": {
+    "puppeteer": "24.19.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "2.11.2"
+  }
+}

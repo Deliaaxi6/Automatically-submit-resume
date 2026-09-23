@@ -1,0 +1,58 @@
+# 简历自动投递工具配置文件
+
+# 搜索投递配置
+search:
+  # 搜索关键词列表（每次随机选一个）
+  keywords:
+    - "Python开发"
+    - "后端开发"
+    - "全栈开发"
+  # 城市
+  city: "北京"
+  # 每次投递间隔（秒），随机取 [min, max] 之间的值
+  delay:
+    min: 3
+    max: 8
+  # 单次最多投递数量
+  max_apply: 20
+
+# 平台配置
+platforms:
+  boss:
+    enabled: true
+    base_url: "https://www.zhipin.com"
+    # 搜索页面 URL 模板（{keyword} 和 {city} 会被替换）
+    search_url: "https://www.zhipin.com/web/geek/job?query={keyword}&city={city}"
+  zhaopin:
+    enabled: true
+    base_url: "https://sou.zhaopin.com"
+    search_url: "https://sou.zhaopin.com/?jl={city}&kw={keyword}"
+
+# 简历配置
+resume:
+  # 简历文件路径（支持 PDF 和 Word）
+  file: "resumes/my_resume.pdf"
+  # 自动填充的字段（从简历解析，也可手动覆盖）
+  fields:
+    name: ""
+    phone: ""
+    email: ""
+    expected_salary: ""
+    expected_city: ""
+
+# 浏览器配置
+browser:
+  # 是否显示浏览器界面（调试时设为 true）
+  headless: false
+  # 浏览器窗口大小
+  window_size:
+    width: 1280
+    height: 800
+  # User-Agent
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+# 日志配置
+logging:
+  level: "INFO"
+  # 投递记录文件
+  deliver_log: "logs/deliver_log.json"
