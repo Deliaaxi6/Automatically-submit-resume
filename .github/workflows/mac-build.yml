@@ -1,0 +1,91 @@
+name: build-mac-package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-mac-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract web-ui Cargo package version
+        id: cargo
+        run: echo "crate=resume-web-ui" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust (if needed)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: mac-arm64-${{ hashFiles('web-ui/Cargo.toml') }}
+
+      - name: Build release web-ui
+        run: cargo build --release -p resume-web-ui
+        working-directory: .
+
+      - name: Locate built binary
+        id: bin
+        run: |
+          echo "exe=$(pwd)/target/release/resume-web-ui" >> "$GITHUB_OUTPUT"
+
+      - name: Download Node darwin-arm64
+        env:
+          NODE_VER: v20.19.0
+        run: |
+          curl -fL -o "$RUNNER_TEMP/node.tar.xz" \
+            "https://nodejs.org/dist/${NODE_VER}/node-${NODE_VER}-darwin-arm64.tar.xz"
+          mkdir -p "$RUNNER_TEMP/node"
+          tar -xJf "$RUNNER_TEMP/node.tar.xz" -C "$RUNNER_TEMP/node" --strip-components=1
+
+      - name: Assemble portable package
+        run: |
+          set -e
+          PKG="$RUNNER_TEMP/package"
+          mkdir -p "$PKG/bin" "$PKG/static" "$PKG/logs" "$PKG/cookies"
+
+          # node runtime -> bin/
+          cp -R "$RUNNER_TEMP/node/bin" "$PKG/bin-tmp" 2>/dev/null || true
+          cp "$RUNNER_TEMP/node/bin/node" "$PKG/bin/node"
+          [ -d "$RUNNER_TEMP/node/include" ] && cp -R "$RUNNER_TEMP/node/include" "$PKG/bin/include"
+          [ -d "$RUNNER_TEMP/node/lib" ] && cp -R "$RUNNER_TEMP/node/lib" "$PKG/bin/lib"
+          [ -d "$RUNNER_TEMP/node/share" ] && cp -R "$RUNNER_TEMP/node/share" "$PKG/bin/share"
+
+          # rust binary
+          cp "$(pwd)/target/release/resume-web-ui" "$PKG/resume-web-ui"
+          chmod +x "$PKG/resume-web-ui"
+
+          # node-automation (source only, deps installed on first run)
+          cp -R node-automation "$PKG/node-automation"
+          rm -rf "$PKG/node-automation/node_modules" \
+                 "$PKG/node-automation/chrome-profile-boss" \
+                 "$PKG/node-automation/chrome-profile-zhaopin" \
+                 "$PKG/node-automation/logs"
+
+          # static UI + launch scripts + empty logs
+          cp -R web-ui/static/* "$PKG/static/"
+          cp build/启动-mac.command "$PKG/启动-mac.command" || true
+          cp build/启动.bat "$PKG/启动.bat" || true
+          touch "$PKG/logs/deliver_log.json" && echo "[]" > "$PKG/logs/deliver_log.json"
+          chmod +x "$PKG/resume-web-ui" "$PKG/bin/node" "$PKG/启动-mac.command" || true
+
+          # zip it
+          cd "$RUNNER_TEMP"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$PKG" \
+            "resume-auto-apply-mac-arm64.zip" || zip -ry "resume-auto-apply-mac-arm64.zip" package
+
+          ls -lh "$RUNNER_TEMP/resume-auto-apply-mac-arm64.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resume-auto-apply-mac-arm64
+          path: ${{ runner.temp }}/resume-auto-apply-mac-arm64.zip
+          retention-days: 30
